@@ -238,6 +238,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         self.fit_spin_box.setFont(font)
         self.fit_spin_box.setObjectName("fit_spin_box")
+        self.fit_spin_box.setMaximum(1000)
         self.analysis_layout.addWidget(self.fit_spin_box, 4, 1, 1, 1)
         self.fit_slider = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -292,6 +293,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         self.scmos_spin_box.setFont(font)
         self.scmos_spin_box.setObjectName("scmos_spin_box")
+        self.scmos_spin_box.setMaximum(1000)
         self.analysis_layout.addWidget(self.scmos_spin_box, 9, 1, 1, 1)
         self.scmos_slider = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -561,4 +563,3 @@ if __name__ == "__main__":
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
-

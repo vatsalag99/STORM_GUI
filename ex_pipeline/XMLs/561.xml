@@ -1,11 +1,7 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-
-<!-- This is an Analysis Parameters XML file for fitting .dax 	STORM movies. Documentation on parameters can be found here: 	http://storm-	analysis.readthedocs.io/en/latest/parameters.html -->
-
-<settings>
+<!-- This is an Analysis Parameters XML file for fitting .dax 	STORM movies. Documentation on parameters can be found here: 	http://storm-	analysis.readthedocs.io/en/latest/parameters.html --><settings>
   <!-- Film parameters -->
   <!-- -1 = start at the beginning, analyze to the end -->
-  <start_frame type="int">500</start_frame>
+  <start_frame type="int">0</start_frame>
   <max_frame type="int">-1</max_frame>
 
   <!-- These are for reducing the analysis AOI. Leave unset to 	start at the edge of the image -->
@@ -40,15 +36,15 @@
   <!-- This is the sigma of a 2D gaussian to convolve the image 	with prior to peak indentification. When your data has a low 	SNR this can help for peak finding. For optimal sensitivity 	it should be the same as the expected sigma for your peaks. 	If you set it to zero (or comment it out) then this will not 	be performed, which can make the analysis (very slightly) 	faster. Unless you need the sensitivity you might just leave 	this parameter out. If you do use it, this should be about 	the same as sigma -->
   <foreground_sigma type="float">1.2</foreground_sigma>  
   
-  <!-- Maximum number of iterations for new peak finding. Usually 	you’d use something like 20 to try and separate neighboring 	peaks. However if you are analyzing beads or some other 	bright and sparse target 1 may be a better choice as it will 	suppress the spurious splitting of a single peak into 	multiple peaks. -->
+  <!-- Maximum number of iterations for new peak finding. Usually 	you&#146;d use something like 20 to try and separate neighboring 	peaks. However if you are analyzing beads or some other 	bright and sparse target 1 may be a better choice as it will 	suppress the spurious splitting of a single peak into 	multiple peaks. -->
   <iterations type="int">20</iterations>
   
   <!-- CCD pixel size (in nm) -->
   <pixel_size type="float">153.0</pixel_size>
 
   <!-- threshold -->
-  <!-- Threshold in units of sigma, as in "3 sigma event." For 	example at 3 sigma you’d expect about 0.003 false positives 	per pixel. Incorrect background estimation can however 	complicate things. You probably want to use a value greater 	than 6.0 for most analysis. Also if your label is quite 	bright and you are not modelling your peaks that well 	(incorrect PSF, PSF is too small) you may need to set this 	higher to avoid getting apparently spurious low intensity 	peaks. -->
-  <threshold type="float">10</threshold>
+  <!-- Threshold in units of sigma, as in "3 sigma event." For 	example at 3 sigma you&#146;d expect about 0.003 false positives 	per pixel. Incorrect background estimation can however 	complicate things. You probably want to use a value greater 	than 6.0 for most analysis. Also if your label is quite 	bright and you are not modelling your peaks that well 	(incorrect PSF, PSF is too small) you may need to set this 	higher to avoid getting apparently spurious low intensity 	peaks. -->
+  <threshold type="float">0.0</threshold>
 
   <!-- initial guess for PSF sigma -->
   <!-- This is the estimated sigma of the PSF in pixels, it 	serves several purposes. 1) It is used in most of the 	analysis approaches as a measure of the peak to peak 	distance at which peak fits do not substantially effect each 	other. 2) In most of the analysis approaches, if two peaks 	are closer than this distance then the dimmer one will be 	discarded. 3) In 3D-DAOSTORM and sCMOS analysis it is also 	used as the initial guess for the peak sigma. If you are 	using the 2dfixed model then it needs to be pretty close to 	the correct value or the program will generate lots of 	spurious double and triple peaks. For 2d it should be close, 	probably within 50% or so of the average peak sigma or the 	fitting might fail to converge on many peaks. 3d is similar 	to 2d. It should not effect fitting for Z the model. -->
@@ -132,5 +128,3 @@
   <d_scale type="int">2</d_scale>  
 
 </settings>
-
-

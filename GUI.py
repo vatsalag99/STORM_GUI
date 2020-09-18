@@ -8,7 +8,9 @@ import numpy
 import os
 import sys
 
-from qtmodern import styles 
+from functools import partial
+
+from qtmodern import styles
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -17,12 +19,20 @@ import storm_analysis.sa_library.i3dtype as i3dtype
 import storm_analysis.sa_library.readinsight3 as readinsight3
 import storm_analysis.sa_library.sa_h5py as saH5Py
 
-# Imports for the UI 
-import GUI_ui as gui_UI 
-import input_parameters_dlg as load_params_dlg 
-import advanced_settings_dlg as adv_load_params_dlg
+# Imports for the UI
+import GUI_ui as gui_UI
+
+# Inports for Dialogs
+from input_parameters_dlg import InputParametersDialog
+from frame_range_dlg import FrameRangeDialog
 
 import qtRangeSlider
+
+if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+
+if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 
 class InfoTable(QtWidgets.QWidget):
@@ -41,7 +51,7 @@ class InfoTable(QtWidgets.QWidget):
 
     def hideFields(self):
         self.table_widget.setRowCount(0)
-        
+
     def showFields(self, fields):
         self.fields = fields
         self.table_widget.setRowCount(len(fields))
@@ -115,7 +125,7 @@ class MoleculeList(object):
         self.locs = {}
 
     def createMolItems(self, frame_number, nm_per_pixel):
-        self.locs = self.loadLocalizations(frame_number, nm_per_pixel)        
+        self.locs = self.loadLocalizations(frame_number, nm_per_pixel)
         self.mol_items = []
         if bool(self.locs):
             if "xsigma" in self.locs:
@@ -160,7 +170,7 @@ class MoleculeList(object):
 
     def getFields(self):
         return self.fields
-        
+
 
 class MoleculeListHDF5(MoleculeList):
     """
@@ -175,11 +185,11 @@ class MoleculeListHDF5(MoleculeList):
                        "background",
                        "error",
                        "height",
-                       "sum",                       
+                       "sum",
                        "xsigma",
                        "ysigma",
                        "category",
-                       "iterations",                       
+                       "iterations",
                        "significance"]
 
         self.reader = saH5Py.SAH5Py(filename)
@@ -193,7 +203,7 @@ class MoleculeListHDF5(MoleculeList):
             if ("xsigma" in locs) and (not "ysigma" in locs):
                 locs["ysigma"] = locs["xsigma"]
         return locs
-        
+
 
 class MoleculeListI3(MoleculeList):
     """
@@ -226,7 +236,7 @@ class MoleculeListI3(MoleculeList):
             return i3dtype.convertToSAHDF5(i3data, fnum, nm_per_pixel)
         else:
             return {}
-            
+
 
 class MovieView(QtWidgets.QGraphicsView):
     """
@@ -300,7 +310,7 @@ class MovieView(QtWidgets.QGraphicsView):
         frame = 255.0*(frame-fmin)/(fmax-fmin)
         frame[(frame > 255.0)] = 255.0
         frame[(frame < 0.0)] = 0.0
-        
+
         # convert to QImage.
         frame = numpy.ascontiguousarray(frame.astype(numpy.uint8))
         h, w = frame.shape
@@ -313,7 +323,7 @@ class MovieView(QtWidgets.QGraphicsView):
         self.image = QtGui.QImage(frame_RGB.data, w, h, QtGui.QImage.Format_RGB32)
         self.image.ndarray1 = frame
         self.image.ndarray2 = frame_RGB
-    
+
         # add to scene
         self.scene.addPixmap(QtGui.QPixmap.fromImage(self.image))
 
@@ -346,7 +356,7 @@ class Window(QtWidgets.QMainWindow):
     """
     Main window.
     """
-    
+
     def __init__(self, directory = None, **kwds):
         super(Window, self).__init__(**kwds)
 
@@ -373,7 +383,7 @@ class Window(QtWidgets.QMainWindow):
         # initialize info tables
         self.locs1_table = InfoTable(table_widget = self.ui.locs1TableWidget)
         self.locs2_table = InfoTable(table_widget = self.ui.locs2TableWidget)
-        
+
         # initialize movie viewing tab.
         self.movie_view = MovieView(xyi_label = self.ui.xyiLabel, parent = self.ui.movieGroupBox)
         movie_layout = QtWidgets.QGridLayout(self.ui.movieGroupBox)
@@ -385,7 +395,23 @@ class Window(QtWidgets.QMainWindow):
         self.ui.maxSpinBox.setValue(int(self.settings.value("maximum", 2000)))
         self.ui.minSpinBox.setValue(int(self.settings.value("minimum", 100)))
         self.ui.nmPerPixelSpinBox.setValue(float(self.settings.value("pixel_size", 160)))
-        
+
+        # Fitting Parameters Slider
+        self.ui.fit_slider.setMinimum(self.ui.fit_spin_box.minimum())
+        self.ui.fit_slider.setMaximum(self.ui.fit_spin_box.maximum())
+        self.ui.fit_slider.valueChanged.connect(partial(self.updateDisplay,
+                                                        self.ui.fit_slider,
+                                                        self.ui.fit_spin_box))
+        self.ui.fit_spin_box.valueChanged.connect(self.handleFitSpinBox)
+
+        # SCMOS Parameters Slider
+        self.ui.scmos_slider.setMinimum(self.ui.scmos_spin_box.minimum())
+        self.ui.scmos_slider.setMaximum(self.ui.scmos_spin_box.maximum())
+        self.ui.scmos_slider.valueChanged.connect(partial(self.updateDisplay,
+                                                        self.ui.scmos_slider,
+                                                        self.ui.scmos_spin_box))
+        self.ui.scmos_spin_box.valueChanged.connect(self.handleScmosSpinBox)
+
         # initialize range slider.
         self.rangeSlider = qtRangeSlider.QVRangeSlider([self.ui.minSpinBox.minimum(),
                                                         self.ui.maxSpinBox.maximum(),
@@ -413,30 +439,46 @@ class Window(QtWidgets.QMainWindow):
             self.directory = str(self.settings.value("directory", ""))
         else:
             self.directory = directory
-            
+
         self.move(self.settings.value("position", self.pos()))
 
         '''
         The code below has been written for the additional functions of this pipeline
         '''
 
-        # Handle actions 
+        # Handle actions
         self.ui.actionLoad_Experiment_Folder.triggered.connect(self.handleLoadExpFolder)
-        self.ui.actionLoad_Training_Parameters.triggered.connect(load_params_dlg.main)
+        self.ui.actionLoad_Training_Parameters.triggered.connect(self.open_input_parameters_dlg)
 
-        # Handle button actions 
+        # Handle button actions
         self.ui.load_exp_btn.clicked.connect(self.handleLoadExpFolder)
         self.ui.load_mov_btn.clicked.connect(self.handleLoadMovie)
+
+        # Dialog
+        self.ui.test_params_btn.clicked.connect(self.open_input_parameters_dlg)
+        self.ui.frame_rg_btn.clicked.connect(self.open_frame_range_dlg)
+
+    def updateDisplay(self, horizontalSlider, spinBox):
+        spinBox.setValue(horizontalSlider.value())
 
     def handleLoadExpFolder(self):
         exp_folder = QtWidgets.QFileDialog.getExistingDirectory()
         self.ui.exp_lbl.setText(exp_folder)
 
+    def open_input_parameters_dlg(self):
+        input_parameters_dlg = InputParametersDialog()
+        input_parameters_dlg.show()
+
+    def open_frame_range_dlg(self):
+        frame_range_dlg = FrameRangeDialog()
+        frame_range_dlg.exec_()
+        frame_range_dlg.show()
+
     def capture(self):
         pixmap = self.movie_view.grab()
         pixmap.save("capture.png")
         print("Capture size:", pixmap.width(), pixmap.height())
-        
+
     def cleanUp(self):
         for elt in [self.locs1_list, self.locs2_list]:
             if elt is not None:
@@ -516,7 +558,7 @@ class Window(QtWidgets.QMainWindow):
                                                                "Load Movie",
                                                                self.directory,
                                                                "*.dax *.fits *.spe *.tif")[0]
-        if movie_filename:            
+        if movie_filename:
             self.directory = os.path.dirname(movie_filename)
             self.movie_file = datareader.inferReader(movie_filename)
             [self.film_x, self.film_y, self.film_l] = self.movie_file.filmSize()
@@ -532,13 +574,13 @@ class Window(QtWidgets.QMainWindow):
             # Hide info displays
             self.locs1_table.hideFields()
             self.locs2_table.hideFields()
-            
+
             # Reset view transform.
             self.movie_view.setTransform(QtGui.QTransform())
-            
+
             self.incCurFrame(0)
 
-            # Add text to the label 
+            # Add text to the label
             self.ui.mov_path_lbl.setText(movie_filename)
 
     def handleLocsDisplayTimer(self):
@@ -550,6 +592,12 @@ class Window(QtWidgets.QMainWindow):
 
     def handleNmPerPixelSpinBox(self, value):
         self.displayFrame(True)
+
+    def handleFitSpinBox(self):
+        self.ui.fit_slider.setValue(self.ui.fit_spin_box.value())
+
+    def handleScmosSpinBox(self):
+        self.ui.scmos_slider.setValue(self.ui.scmos_spin_box.value())
 
     def handleRangeChange(self, range_min, range_max):
         self.ui.minSpinBox.setValue(range_min)
@@ -567,7 +615,7 @@ class Window(QtWidgets.QMainWindow):
             if (self.locs1_list is not None):
                 self.locs1_list.clearLocs()
             if (self.locs2_list is not None):
-                self.locs2_list.clearLocs()             
+                self.locs2_list.clearLocs()
             self.ui.frame_spin_box.setValue(self.cur_frame+1)
             self.displayFrame(False)
             self.locs_display_timer.start()
@@ -603,7 +651,7 @@ class Window(QtWidgets.QMainWindow):
                 self.incCurFrame(1)
             else:
                 self.incCurFrame(-1)
-                
+
 
 if (__name__ == "__main__"):
     app = QtWidgets.QApplication(sys.argv)
@@ -612,9 +660,9 @@ if (__name__ == "__main__"):
     directory = None
     if (len(sys.argv) == 2):
         directory = sys.argv[1]
-        
+
     window = Window(directory = directory)
-    
+
     window.show()
     app.exec_()
     app.deleteLater()
