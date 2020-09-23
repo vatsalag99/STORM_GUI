@@ -20,13 +20,13 @@ import storm_analysis.sa_library.readinsight3 as readinsight3
 import storm_analysis.sa_library.sa_h5py as saH5Py
 
 # Imports for the UI
-import GUI_ui as gui_UI
+import gui.GUI_ui as gui_UI
 
 # Inports for Dialogs
-from input_parameters_dlg import InputParametersDialog
-from frame_range_dlg import FrameRangeDialog
+from gui.input_parameters_dlg import InputParametersDialog
+from gui.frame_range_dlg import FrameRangeDialog
 
-import qtRangeSlider
+from gui import qtRangeSlider
 
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)

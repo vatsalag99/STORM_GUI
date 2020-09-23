@@ -11,9 +11,9 @@ from functools import partial
 import xml.etree.ElementTree as ET
 import lxml.etree as lxmlET
 
-import input_parameters_dlg_ui
+from gui import input_parameters_dlg_ui
 
-from advanced_settings_dlg import AdvancedSettingsDialog
+from gui.advanced_settings_dlg import AdvancedSettingsDialog
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
