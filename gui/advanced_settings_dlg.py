@@ -11,7 +11,7 @@ from functools import partial
 import xml.etree.ElementTree as ET
 import lxml.etree as lxmlET
 
-from gui import advanced_settings_dlg_ui
+import advanced_settings_dlg_ui
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -32,13 +32,13 @@ class AdvancedSettingsDialog(QDialog):
         # Handle findXML buttons
 
         self.ui.find488.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl488))
-        self.ui.find647.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl647))
-        self.ui.find750.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl750))
+                self.ui.pathLbl488, 0))
         self.ui.find561.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl561))
+                self.ui.pathLbl561, 1))
+        self.ui.find647.clicked.connect(partial(self.findXML,
+                self.ui.pathLbl647, 2))
+        self.ui.find750.clicked.connect(partial(self.findXML,
+                self.ui.pathLbl750, 3))
 
         self.ui.updateBtn.clicked.connect(self.updateXML)
 
@@ -53,7 +53,7 @@ class AdvancedSettingsDialog(QDialog):
         self.psfs = [self.ui.psf488, self.ui.psf561, self.ui.psf647, self.ui.psf750]
         self.checkBoxes = [self.ui.checkBox488, self.ui.checkBox561, self.ui.checkBox647, self.ui.checkBox750]
 
-    def findXML(self, label):
+    def findXML(self, label, channel):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         (fileName, _) = QFileDialog.getOpenFileName(self,
@@ -61,6 +61,31 @@ class AdvancedSettingsDialog(QDialog):
                 , options=options)
         if fileName:
             label.setText(fileName)
+            
+            # Load in the XML tree 
+            tree = lxmlET.parse(fileName)
+            root = tree.getroot()
+            sf = self.sfs[channel]
+            ef = self.efs[channel]
+            bs = self.bss[channel]
+            fs = self.fss[channel]
+            psf = self.psfs[channel] 
+            cb = self.checkBoxes[channel]
+            
+            for child in root:
+                if child.tag == "start_frame":
+                    sf.setValue(float(child.text))
+                if child.tag == "max_frame":
+                    ef.setValue(float(child.text))
+                if child.tag == "background_sigma":
+                    bs.setValue(float(child.text))
+                if child.tag == "foreground_sigma":
+                    fs.setValue(float(child.text))
+                if child.tag == "sigma":
+                    psf.setValue(float(child.text))
+                if child.tag == "drift_correction":
+                    if child.text == str(1):
+                        cb.setChecked(True)
 
     def updateXML(self):
 

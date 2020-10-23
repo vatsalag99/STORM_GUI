@@ -108,7 +108,7 @@
 
   <!-- Drift correction parameters -->
   <!-- do drift correction 0 = No -->
-  <drift_correction type="int">0</drift_correction>
+  <drift_correction type="int">1</drift_correction>
 
   <!-- number of frames in each sub-STORM image. -->
   <frame_step type="int">500</frame_step>
