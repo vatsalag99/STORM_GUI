@@ -11,9 +11,8 @@ from functools import partial
 import xml.etree.ElementTree as ET
 import lxml.etree as lxmlET
 
-import input_parameters_dlg_ui
-
-from advanced_settings_dlg import AdvancedSettingsDialog
+from gui import input_parameters_dlg_ui
+from gui.advanced_settings_dlg import AdvancedSettingsDialog
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -96,7 +95,7 @@ class InputParametersDialog(QDialog):
                     if child.tag == 'start_frame':
                         child.text = str(self.ui.sf.value())
 
-                    if child.tag == 'end_frame':
+                    if child.tag == 'max_frame':
                         child.text = str(self.ui.ef.value())
 
                     if child.tag == 'threshold':

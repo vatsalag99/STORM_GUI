@@ -8,9 +8,3 @@ Notes
 2
 - Drag and drop dax files 
 
-4
-- Input parameters should auto-populate with the XML data in the root data folder 
-- load XLs and have the advanced feature tab populate it accordingly 
-
-5
-- should update the max frame and the drift correction parameters 

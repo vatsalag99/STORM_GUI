@@ -11,7 +11,7 @@ from functools import partial
 import xml.etree.ElementTree as ET
 import lxml.etree as lxmlET
 
-import advanced_settings_dlg_ui
+from gui import advanced_settings_dlg_ui
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 

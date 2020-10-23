@@ -1,8 +1,8 @@
 <!-- This is an Analysis Parameters XML file for fitting .dax 	STORM movies. Documentation on parameters can be found here: 	http://storm-	analysis.readthedocs.io/en/latest/parameters.html --><settings>
   <!-- Film parameters -->
   <!-- -1 = start at the beginning, analyze to the end -->
-  <start_frame type="int">0</start_frame>
-  <max_frame type="int">0</max_frame>
+  <start_frame type="int">34</start_frame>
+  <max_frame type="int">13</max_frame>
 
   <!-- These are for reducing the analysis AOI. Leave unset to 	start at the edge of the image -->
   <!--
@@ -23,7 +23,7 @@
 
   <!-- Sigma of the filter to use for background estimation. -->
   <!-- This value should be between 8-10 for most 	applications -->
-  <background_sigma type="float">0.0</background_sigma>
+  <background_sigma type="float">32.0</background_sigma>
   
   <!-- camera calibration file -->
   <!-- This file contains the sCMOS calibration data for the 	region of the camera that the movie comes from. It consists 	of 3 numpy arrays, [offset, variance, gain], each of which 	is the same size as a frame of the movie that is to be 	analyzed. This can be generated for a camera using 	camera_calibration.py and (if it needs to be resliced), 	reslice_calibration.py. -->
@@ -34,7 +34,7 @@
     
   <!-- Sigma of the filter to use for foreground smoothing. -->
   <!-- This is the sigma of a 2D gaussian to convolve the image 	with prior to peak indentification. When your data has a low 	SNR this can help for peak finding. For optimal sensitivity 	it should be the same as the expected sigma for your peaks. 	If you set it to zero (or comment it out) then this will not 	be performed, which can make the analysis (very slightly) 	faster. Unless you need the sensitivity you might just leave 	this parameter out. If you do use it, this should be about 	the same as sigma -->
-  <foreground_sigma type="float">0.0</foreground_sigma>  
+  <foreground_sigma type="float">19.0</foreground_sigma>  
   
   <!-- Maximum number of iterations for new peak finding. Usually 	you&#146;d use something like 20 to try and separate neighboring 	peaks. However if you are analyzing beads or some other 	bright and sparse target 1 may be a better choice as it will 	suppress the spurious splitting of a single peak into 	multiple peaks. -->
   <iterations type="int">20</iterations>
@@ -44,11 +44,11 @@
 
   <!-- threshold -->
   <!-- Threshold in units of sigma, as in "3 sigma event." For 	example at 3 sigma you&#146;d expect about 0.003 false positives 	per pixel. Incorrect background estimation can however 	complicate things. You probably want to use a value greater 	than 6.0 for most analysis. Also if your label is quite 	bright and you are not modelling your peaks that well 	(incorrect PSF, PSF is too small) you may need to set this 	higher to avoid getting apparently spurious low intensity 	peaks. -->
-  <threshold type="float">0.0</threshold>
+  <threshold type="float">4.0</threshold>
 
   <!-- initial guess for PSF sigma -->
   <!-- This is the estimated sigma of the PSF in pixels, it 	serves several purposes. 1) It is used in most of the 	analysis approaches as a measure of the peak to peak 	distance at which peak fits do not substantially effect each 	other. 2) In most of the analysis approaches, if two peaks 	are closer than this distance then the dimmer one will be 	discarded. 3) In 3D-DAOSTORM and sCMOS analysis it is also 	used as the initial guess for the peak sigma. If you are 	using the 2dfixed model then it needs to be pretty close to 	the correct value or the program will generate lots of 	spurious double and triple peaks. For 2d it should be close, 	probably within 50% or so of the average peak sigma or the 	fitting might fail to converge on many peaks. 3d is similar 	to 2d. It should not effect fitting for Z the model. -->
-  <sigma type="float">0.0</sigma>  
+  <sigma type="float">11.0</sigma>  
 
 
 <!-- Convert the .hdf5 mlist analysis files to .bin files for viewing in Insight3. This conversion keeps the original .hdf5 lists and creates new bin files. -->
