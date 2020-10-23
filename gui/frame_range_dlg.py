@@ -11,7 +11,7 @@ from functools import partial
 import xml.etree.ElementTree as ET
 import lxml.etree as lxmlET
 
-from gui import frame_range_dlg_ui
+import frame_range_dlg_ui
 
 
 class FrameRangeDialog(QDialog):
