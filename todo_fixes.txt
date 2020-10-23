@@ -1,0 +1,22 @@
+Notes 
+
+
+1
+- Need Instruction: Instructions for moving (could add this to the README) 
+- Spinbox to change the jump-step size and also allow for manual frame jump 
+
+2
+- Drag and drop dax files 
+
+3 
+- Input parameters don't allow for min and max frame setting - we need these to from 0-100000
+
+4
+- Input parameters should auto-populate with the XML data in the root data folder 
+- load XLs and have the advanced feature tab populate it accordingly 
+
+5
+- should update the max frame and the drift correction parameters 
+
+6
+- Add exceptions to the error dialogs. 

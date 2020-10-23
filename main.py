@@ -31,8 +31,10 @@ from gui import qtRangeSlider
 # Pipeline Imports 
 from analysis_scripts import fitting_parameters_evaluation as fitting_func 
 from analysis_scripts import scmos_batch_fitting as scmos_func
+
 from analysis_scripts import XY_alignment_561Storm_488wga as xy_align_func488
 from analysis_scripts import XY_alignment as xy_align_func561
+
 from analysis_scripts import z_alignment_561storm_488wga as z_align_func488
 from analysis_scripts import z_alignment as z_align_func561
 
@@ -465,7 +467,7 @@ class Window(QtWidgets.QMainWindow):
         
         # Button functionality for STORM analysis 
         self.ui.fit_btn.clicked.connect(self.runFitting) 
-        self.ui.scmos_btn.clicked.connect(self.runAnalysis) 
+        self.ui.multifit_btn.clicked.connect(self.runAnalysis) 
         
 
     """ This method handles running the fitting parameters evaluation pipeline """
@@ -514,13 +516,15 @@ class Window(QtWidgets.QMainWindow):
         for cb in [self.ui.checkBox488, self.ui.checkBox561, self.ui.checkBox647, self.ui.checkBox750]:
             if cb.isChecked(): 
                 channels.append(cb.text())
+        xy_channels = [channel + 'storm_' for channel in channels]
 
         alignment_channels = [] 
         for a_cb in [self.ui.a_checkBox488, self.ui.a_checkBox561]:
             if a_cb.isChecked(): 
                 alignment_channels.append(a_cb.text())
-       
+      
         experiment_folder = self.ui.exp_lbl.text()
+        
         # Handle errors 
         if not experiment_folder or len(channels) == 0 or len(alignment_channels) == 0: 
             error_dialog = QtWidgets.QErrorMessage()
@@ -530,31 +534,59 @@ class Window(QtWidgets.QMainWindow):
             return 
             
         # Pass the parameters to the fitting function
+        """
         try:         
             scmos_func.batch_fitting(experiment_folder, num_processes, channels)
-            if self.ui.a_checkBox488.isChecked():
-                xy_align_func488.xy_align(self.expfolder, channels)
-                z_align_func488.z_align(self.expfolder) 
-            if self.ui.a_checkBox561.isChecked():
-                xy_align_func561.xy_align(self.expfolder, channels)
-                z_align_func561.z_align(self.expfolder) 
-                
-
+                       
         except: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("Uh oh something went wrong.") 
+            error_dialog.showMessage("SCMOS Failed") 
             error_dialog.exec_() 
             return 
+        """         
+        if self.ui.a_checkBox488.isChecked():
+            try:
+                print(xy_channels)
+                xy_align_func488.xy_align(experiment_folder, xy_channels)
+            except Exception as e: 
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.setWindowTitle("Error!") 
+                error_dialog.showMessage("XY Align Failed: " + str(e)) 
+                error_dialog.exec_() 
+                return 
+            try:
+                z_align_func488.z_align(experiment_folder) 
+            except Exception as e: 
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.setWindowTitle("Error!") 
+                error_dialog.showMessage("Z Align Failed: " + str(e)) 
+                error_dialog.exec_() 
+                return 
+        elif self.ui.a_checkBox561.isChecked():
+            try:
+                xy_align_func561.xy_align(experiment_folder, xy_channels)
+            except Exception as e: 
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.setWindowTitle("Error!") 
+                error_dialog.showMessage("XY Align Failed: " + str(e)) 
+                error_dialog.exec_() 
+                return 
+            try:
+                z_align_func561.z_align(experiment_folder) 
+            except Exception as e: 
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.setWindowTitle("Error!") 
+                error_dialog.showMessage("Z Align Failed: " + str(e)) 
+                error_dialog.exec_() 
+                return 
+
             
         # If this is done running then just have a success box!
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("Success")
         msg.setText('Process executed successfully!')
-        msg.exec_()
-
-
-    
+        msg.exec_()    
             
     def updateDisplay(self, horizontalSlider, spinBox):
         spinBox.setValue(horizontalSlider.value())
