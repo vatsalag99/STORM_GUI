@@ -494,10 +494,10 @@ class Window(QtWidgets.QMainWindow):
         try:         
             print("Process executing...")
             fitting_func.fitting_params(experiment_folder, num_processes, channels)
-        except: 
+        except Exception as e: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("Uh oh something went wrong.") 
+            error_dialog.showMessage("Uh oh something went wrong: " + str(e)) 
             error_dialog.exec_() 
             return 
             
