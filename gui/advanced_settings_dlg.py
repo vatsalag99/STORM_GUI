@@ -32,13 +32,13 @@ class AdvancedSettingsDialog(QDialog):
         # Handle findXML buttons
 
         self.ui.find488.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl488, 0))
+                self.ui.pathLbl488, self.ui.thresh488, 0))
         self.ui.find561.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl561, 1))
+                self.ui.pathLbl561, self.ui.thresh561, 1))
         self.ui.find647.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl647, 2))
+                self.ui.pathLbl647, self.ui.thresh647, 2))
         self.ui.find750.clicked.connect(partial(self.findXML,
-                self.ui.pathLbl750, 3))
+                self.ui.pathLbl750, self.ui.thresh750, 3))
 
         self.ui.updateBtn.clicked.connect(self.updateXML)
 
@@ -53,7 +53,7 @@ class AdvancedSettingsDialog(QDialog):
         self.psfs = [self.ui.psf488, self.ui.psf561, self.ui.psf647, self.ui.psf750]
         self.checkBoxes = [self.ui.checkBox488, self.ui.checkBox561, self.ui.checkBox647, self.ui.checkBox750]
 
-    def findXML(self, label, channel):
+    def findXML(self, label, thresh, channel):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         (fileName, _) = QFileDialog.getOpenFileName(self,
@@ -81,6 +81,8 @@ class AdvancedSettingsDialog(QDialog):
                     bs.setValue(float(child.text))
                 if child.tag == "foreground_sigma":
                     fs.setValue(float(child.text))
+                if child.tag == "threshold":
+                    thresh.setValue(float(child.text))
                 if child.tag == "sigma":
                     psf.setValue(float(child.text))
                 if child.tag == "drift_correction":

@@ -7,4 +7,5 @@ Notes
 
 2
 - Drag and drop dax files 
+  Be able to drag the image around for viewing 
 

@@ -13,12 +13,10 @@ from functools import partial
 from qtmodern import styles
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal, QT_VERSION_STR
 from PyQt5.QtGui import QImage, QPixmap, QPainterPath
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QFileDialog
-
-
+    
 import storm_analysis.sa_library.datareader as datareader
 import storm_analysis.sa_library.i3dtype as i3dtype
 import storm_analysis.sa_library.readinsight3 as readinsight3
@@ -30,7 +28,6 @@ import gui.GUI_ui as gui_UI
 # Inports for Dialogs
 from gui.input_parameters_dlg import InputParametersDialog
 from gui.frame_range_dlg import FrameRangeDialog
-from gui.advanced_settings_dlg import AdvancedSettingsDialog
 
 from gui import qtRangeSlider 
 
@@ -262,11 +259,15 @@ class MovieView(QtWidgets.QGraphicsView):
 
     #key_press = QtCore.pyqtSignal(object)
     mouse_press = QtCore.pyqtSignal(float, float, name='mousePress')
+    
+    # Mouse button signals emit image scene (x, y) coordinates.
+    # !!! For image (row, column) matrix indexing, row = y and column = x.
     leftMouseButtonPressed = pyqtSignal(float, float)
+    rightMouseButtonPressed = pyqtSignal(float, float)
     leftMouseButtonReleased = pyqtSignal(float, float)
-    dragged = QtCore.pyqtSignal(str)
-    dropped = QtCore.pyqtSignal(str)
-
+    rightMouseButtonReleased = pyqtSignal(float, float)
+    leftMouseButtonDoubleClicked = pyqtSignal(float, float)
+    rightMouseButtonDoubleClicked = pyqtSignal(float, float)
 
     def __init__(self, xyi_label = None, **kwds):
         super(MovieView, self).__init__(**kwds)
@@ -279,6 +280,7 @@ class MovieView(QtWidgets.QGraphicsView):
         self.zoom_in = 1.2
         self.zoom_out = 1.0/self.zoom_in
 
+        """
         # UI initializiation.
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                            QtWidgets.QSizePolicy.MinimumExpanding)
@@ -287,42 +289,98 @@ class MovieView(QtWidgets.QGraphicsView):
         sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
         self.setSizePolicy(sizePolicy)
         self.setMinimumSize(QtCore.QSize(200, 200))
-        
-        # Scroll Bar Behavior 
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        
+        """       
+               
+               
         # Scene initialization.
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
         self.setMouseTracking(True)
         self.setRenderHint(QtGui.QPainter.Antialiasing + QtGui.QPainter.SmoothPixmapTransform)
-        self.scale(2.0, 2.0)
         
+        # Store a local handle to the scene's current image pixmap.
+        self._pixmapHandle = None
+
+        # Image aspect ratio mode.
+        # !!! ONLY applies to full image. Aspect ratio is always ignored when zooming.
+        #   Qt.IgnoreAspectRatio: Scale image to fit viewport.
+        #   Qt.KeepAspectRatio: Scale image to fit inside viewport, preserving aspect ratio.
+        #   Qt.KeepAspectRatioByExpanding: Scale image to fill the viewport, preserving aspect ratio.
+        self.aspectRatioMode = Qt.KeepAspectRatio
+
+        # Scroll bar behaviour.
+        #   Qt.ScrollBarAlwaysOff: Never shows a scroll bar.
+        #   Qt.ScrollBarAlwaysOn: Always shows a scroll bar.
+        #   Qt.ScrollBarAsNeeded: Shows a scroll bar only when zoomed.
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        # Stack of QRectF zoom boxes in scene coordinates.
+        self.zoomStack = []       
+       
         # Tooltip.
         self.setToolTip("Advance frame +- 1 <,><.>\nAdvance frame +-200<k><l>\n<Home>first frame\n<End>last frame")
-       
-        # Drag and Drop Functionality 
-        self.setAcceptDrops(True)
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
-            
+        
+    def hasImage(self):
+        """ Returns whether or not the scene contains an image pixmap. """
+        return self._pixmapHandle is not None
+        
+    def clearImage(self):
+        """ Removes the current image pixmap from the scene if it exists. """
+        if self.hasImage():
+            self.scene.removeItem(self._pixmapHandle)
+            self._pixmapHandle = None
 
-    def dragMoveEvent(self, event):
-        pass 
-        
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasText():
-            if event.mimeData().text().endswith(('.hdf5', '.bin', 'tif', 'dax', 'fits', 'spe')):
-                event.setAccepted(True)
-            else:
-                event.ignore()
+    def pixmap(self):
+        """ Returns the scene's current image pixmap as a QPixmap, or else None if no image exists.
+        :rtype: QPixmap | None
+        """
+        if self.hasImage():
+            return self._pixmapHandle.pixmap()
+        return None
+
+    def image(self):
+        """ Returns the scene's current image pixmap as a QImage, or else None if no image exists.
+        :rtype: QImage | None
+        """
+        if self.hasImage():
+            return self._pixmapHandle.pixmap().toImage()
+        return None
+
+    def setImage(self, image):
+        """ Set the scene's current image pixmap to the input QImage or QPixmap.
+        Raises a RuntimeError if the input image has type other than QImage or QPixmap.
+        :type image: QImage | QPixmap
+        """
+        if type(image) is QPixmap:
+            pixmap = image
+        elif type(image) is QImage:
+            pixmap = QPixmap.fromImage(image)
         else:
-            event.ignore()
+            raise RuntimeError("ImageViewer.setImage: Argument must be a QImage or QPixmap.")
+        if self.hasImage():
+            self._pixmapHandle.setPixmap(pixmap)
+        else:
+            self._pixmapHandle = self.scene.addPixmap(pixmap)
+        self.setSceneRect(QRectF(pixmap.rect()))  # Set scene size to image size.
+        self.updateViewer()
         
-    def dropEvent(self, event):
-        self.dropped.emit(event.mimeData().text()[8:]) #Return the actual filepath 
- # 
-       
+    def updateViewer(self):
+        """ Show current zoom (if showing entire image, apply current aspect ratio mode).
+        """
+        if not self.hasImage():
+            return
+        if len(self.zoomStack) and self.sceneRect().contains(self.zoomStack[-1]):
+            self.fitInView(self.zoomStack[-1], Qt.IgnoreAspectRatio)  # Show zoomed rect (ignore aspect ratio).
+        else:
+            self.zoomStack = []  # Clear the zoom stack (in case we got here because of an invalid zoom).
+            self.fitInView(self.sceneRect(), self.aspectRatioMode)  # Show entire image (use current aspect ratio mode).
+
+    def resizeEvent(self, event):
+        """ Maintain current zoom on resize.
+        """
+        self.updateViewer()
+
     def keyPressEvent(self, event):
         # This allows keyboard scrolling to work.
         QtWidgets.QGraphicsView.keyPressEvent(self, event)
@@ -342,15 +400,18 @@ class MovieView(QtWidgets.QGraphicsView):
         self.xyi_label.setText("{0:.2f}, {1:.2f}, {2:d}".format(x - 0.5, y - 0.5, i))
 
     def mousePressEvent(self, event):
-        if (event.button() == QtCore.Qt.LeftButton):
+        """ Start mouse pan or zoom mode."""
+        scenePos = self.mapToScene(event.pos())
+        if event.button() == QtCore.Qt.LeftButton:
             self.setDragMode(QGraphicsView.ScrollHandDrag)
-            scenePos = self.mapToScene(event.pos())
-            self.mouse_press.emit(scenePos.x(), scenePos.y())
             self.leftMouseButtonPressed.emit(scenePos.x(), scenePos.y())
+        elif event.button() == QtCore.Qt.RightButton:
+            self.setDragMode(QGraphicsView.RubberBandDrag)
+            self.rightMouseButtonPressed.emit(scenePos.x(), scenePos.y())
         QGraphicsView.mousePressEvent(self, event)
-            
-    def mouseReleaseEvent(self, event): 
     
+    
+    def mouseReleaseEvent(self, event):
         """ Stop mouse pan or zoom mode (apply zoom if valid).
         """
         QGraphicsView.mouseReleaseEvent(self, event)
@@ -358,8 +419,33 @@ class MovieView(QtWidgets.QGraphicsView):
         if event.button() == Qt.LeftButton:
             self.setDragMode(QGraphicsView.NoDrag)
             self.leftMouseButtonReleased.emit(scenePos.x(), scenePos.y())
-        
+        elif event.button() == Qt.RightButton:
+            print(self.zoomStack)
+            viewBBox = self.zoomStack[-1] if len(self.zoomStack) else self.sceneRect()
+            print(viewBBox)
+            selectionBBox = self.scene.selectionArea().boundingRect().intersected(viewBBox)
+            print(self.scene.selectionArea().boundingRect())
+            print(selectionBBox)
+            self.scene.setSelectionArea(QPainterPath())  # Clear current selection area.
+            if selectionBBox.isValid() and (selectionBBox != viewBBox):
+                self.zoomStack.append(selectionBBox)
+                print('googogo')
+                self.updateViewer()
+            self.setDragMode(QGraphicsView.NoDrag)
+            self.rightMouseButtonReleased.emit(scenePos.x(), scenePos.y())
 
+    def mouseDoubleClickEvent(self, event):
+        """ Show entire image.
+        """
+        scenePos = self.mapToScene(event.pos())
+        if event.button() == Qt.LeftButton:
+            self.leftMouseButtonDoubleClicked.emit(scenePos.x(), scenePos.y())
+        elif event.button() == Qt.RightButton:
+            self.zoomStack = []  # Clear zoom stack.
+            self.updateViewer()
+            self.rightMouseButtonDoubleClicked.emit(scenePos.x(), scenePos.y())
+        QGraphicsView.mouseDoubleClickEvent(self, event)
+        
     def newFrame(self, frame, locs1, locs2, fmin, fmax):
         self.scene.clear()
 
@@ -386,7 +472,9 @@ class MovieView(QtWidgets.QGraphicsView):
         self.image.ndarray2 = frame_RGB
 
         # add to scene
-        self.scene.addPixmap(QtGui.QPixmap.fromImage(self.image))
+        self._pixmapHandle = self.scene.addPixmap(QtGui.QPixmap.fromImage(self.image))
+        self.setSceneRect(QRectF(QtGui.QPixmap.fromImage(self.image).rect()))
+        self.updateViewer()
 
         # add localizations from file 1
         for loc in locs1:
@@ -452,8 +540,6 @@ class Window(QtWidgets.QMainWindow):
         self.movie_view.show()
         #self.movie_view.key_press.connect(self.keyPressEvent)
         self.movie_view.mouse_press.connect(self.updateInfo)
-        self.movie_view.dropped.connect(self.handleDragDrop) 
-
 
         self.ui.maxSpinBox.setValue(int(self.settings.value("maximum", 2000)))
         self.ui.minSpinBox.setValue(int(self.settings.value("minimum", 100)))
@@ -474,11 +560,6 @@ class Window(QtWidgets.QMainWindow):
                                                         self.ui.scmos_slider,
                                                         self.ui.scmos_spin_box))
         self.ui.scmos_spin_box.valueChanged.connect(self.handleScmosSpinBox)
-
-
-        # Frame Spin Box (Connect to actually move frame) 
-        self.ui.frame_spin_box.valueChanged.connect(self.handleFrameSpinBox)
-
 
         # initialize range slider.
         self.rangeSlider = qtRangeSlider.QVRangeSlider([self.ui.minSpinBox.minimum(),
@@ -501,7 +582,7 @@ class Window(QtWidgets.QMainWindow):
         self.ui.maxSpinBox.valueChanged.connect(self.handleMaxMinSpinBox)
         self.ui.minSpinBox.valueChanged.connect(self.handleMaxMinSpinBox)
         self.ui.nmPerPixelSpinBox.valueChanged.connect(self.handleNmPerPixelSpinBox)
-        
+
         # load settings.
         if directory is None:
             self.directory = str(self.settings.value("directory", ""))
@@ -517,8 +598,6 @@ class Window(QtWidgets.QMainWindow):
         # Handle button actions
         self.ui.load_exp_btn.clicked.connect(self.handleLoadExpFolder)
         self.ui.load_mov_btn.clicked.connect(self.handleLoadMovie)
-        self.ui.load_loc1_btn.clicked.connect(self.handleLoadLocs1)
-        self.ui.load_loc2_btn.clicked.connect(self.handleLoadLocs2) 
 
         # Dialog
         self.ui.test_params_btn.clicked.connect(self.open_input_parameters_dlg)
@@ -527,7 +606,7 @@ class Window(QtWidgets.QMainWindow):
         # Button functionality for STORM analysis 
         self.ui.fit_btn.clicked.connect(self.runFitting) 
         self.ui.multifit_btn.clicked.connect(self.runAnalysis) 
-               
+        
 
     """ This method handles running the fitting parameters evaluation pipeline """
     def runFitting(self):
@@ -593,6 +672,7 @@ class Window(QtWidgets.QMainWindow):
             return 
             
         # Pass the parameters to the fitting function
+        """
         try:         
             scmos_func.batch_fitting(experiment_folder, num_processes, channels)
                        
@@ -602,7 +682,7 @@ class Window(QtWidgets.QMainWindow):
             error_dialog.showMessage("SCMOS Failed") 
             error_dialog.exec_() 
             return 
-        
+        """         
         if self.ui.a_checkBox488.isChecked():
             try:
                 print(xy_channels)
@@ -654,7 +734,7 @@ class Window(QtWidgets.QMainWindow):
         self.ui.exp_lbl.setText(exp_folder)
 
     def open_input_parameters_dlg(self):
-        input_parameters_dlg = AdvancedSettingsDialog()
+        input_parameters_dlg = InputParametersDialog()
         input_parameters_dlg.show()
 
     def open_frame_range_dlg(self):
@@ -704,50 +784,7 @@ class Window(QtWidgets.QMainWindow):
                                      locs2,
                                      self.ui.minSpinBox.value(),
                                      self.ui.maxSpinBox.value())
-                                     
-    def handleDragDrop(self, file):
-    
-        if file.endswith(('bin', 'hdf5')):
-            list_filename = file
-            if self.locs1_list is not None:
-                self.locs1_list.cleanUp()
-            self.directory = os.path.dirname(list_filename)
-            if saH5Py.isSAHDF5(list_filename):
-                self.locs1_list = MoleculeListHDF5(filename = list_filename,
-                                                   mtype = "l1")
-            else:
-                self.locs1_list = MoleculeListI3(filename = list_filename,
-                                                 mtype = "l1")
-            self.locs1_table.showFields(self.locs1_list.getFields())
-            self.incCurFrame(0)
-        elif file.endswith(('dax', 'spe', 'tif', 'fits')):
-            movie_filename = file 
-            self.directory = os.path.dirname(movie_filename)
-            self.movie_file = datareader.inferReader(movie_filename)
-            [self.film_x, self.film_y, self.film_l] = self.movie_file.filmSize()
-            self.cur_frame = 0
 
-            # Clear molecule lists.
-            for elt in [self.locs1_list, self.locs2_list]:
-                if elt is not None:
-                    elt.cleanUp()
-            self.locs1_list = None
-            self.locs2_list = None
-
-            # Hide info displays
-            self.locs1_table.hideFields()
-            self.locs2_table.hideFields()
-
-            # Reset view transform.
-            self.movie_view.setTransform(QtGui.QTransform())
-
-            self.incCurFrame(0)
-
-            # Add text to the label
-            self.ui.mov_path_lbl.setText(movie_filename)
-            
-    
-      
     def handleLoadLocs1(self):
         list_filename = QtWidgets.QFileDialog.getOpenFileName(self,
                                                               "Load Localization List 1",
@@ -829,11 +866,6 @@ class Window(QtWidgets.QMainWindow):
 
     def handleScmosSpinBox(self):
         self.ui.scmos_slider.setValue(self.ui.scmos_spin_box.value())
-        
-    def handleFrameSpinBox(self):
-        self.cur_frame = int(self.ui.frame_spin_box.value())
-        self.displayFrame(False)
-        self.locs_display_timer.start()
 
     def handleRangeChange(self, range_min, range_max):
         self.ui.minSpinBox.setValue(range_min)
