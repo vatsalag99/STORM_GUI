@@ -139,6 +139,8 @@ class AdvancedSettingsDialog(QDialog):
         msg.setWindowTitle("Success")
         msg.setText('{} XMLs were updated!'.format(counter))
         msg.exec_()
+        
+        self.close()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

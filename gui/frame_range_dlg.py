@@ -44,6 +44,8 @@ class FrameRangeDialog(QDialog):
         msg.setWindowTitle("Success")
         msg.setText('Frame ranges are set!')
         msg.exec_()
+        
+        self.close() 
 
         return (sfs, efs)
 
