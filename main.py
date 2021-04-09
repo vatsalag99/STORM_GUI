@@ -545,7 +545,8 @@ class Window(QtWidgets.QMainWindow):
         if not experiment_folder or len(channels) == 0: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("Please enter all inputs!") 
+            message = 'Please enter an experiment folder!' if not experiment_folder else 'Please select fitting channels!'
+            error_dialog.showMessage(message) 
             error_dialog.exec_()
             return 
             
@@ -556,7 +557,7 @@ class Window(QtWidgets.QMainWindow):
         except Exception as e: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("Uh oh something went wrong: " + str(e)) 
+            error_dialog.showMessage("Fitting has failed: " + str(e)) 
             error_dialog.exec_() 
             return 
             
@@ -588,7 +589,8 @@ class Window(QtWidgets.QMainWindow):
         if not experiment_folder or len(channels) == 0 or len(alignment_channels) == 0: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("Please enter all inputs!") 
+            message = 'Please enter an experiment folder!' if not experiment_folder else 'Please select fitting channels!'
+            error_dialog.showMessage(message) 
             error_dialog.exec_()
             return 
             
@@ -596,10 +598,10 @@ class Window(QtWidgets.QMainWindow):
         try:         
             scmos_func.batch_fitting(experiment_folder, num_processes, channels)
                        
-        except: 
+        except Exception e: 
             error_dialog = QtWidgets.QErrorMessage()
             error_dialog.setWindowTitle("Error!") 
-            error_dialog.showMessage("SCMOS Failed") 
+            error_dialog.showMessage("SCMOS Failed: " + str(e)) 
             error_dialog.exec_() 
             return 
         
